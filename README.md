@@ -3,6 +3,13 @@
 > **A real-time flood risk monitoring system for Malaysian river catchments.**  
 > Built with FastAPI (Python) on the backend and React Native (Expo) on the mobile frontend.
 
+## 🎬 Demo Video
+
+<!-- Replace VIDEO_ID with the YouTube video ID (the part after "v=" in the URL). -->
+[![FloodSense demo video](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+
+▶️ **[Watch the demo on YouTube](https://www.youtube.com/watch?v=VIDEO_ID)** *(link coming soon)*
+
 ---
 
 ## Table of Contents

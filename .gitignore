@@ -5,6 +5,9 @@ Thumbs.db
 .idea/
 *.iml
 
+# --- Demo video project and media (kept local; video is linked from README) ---
+demo-video/
+
 # --- Stray folder created by a tool that mis-expanded an env var ---
 **/%ProgramData%/
 
