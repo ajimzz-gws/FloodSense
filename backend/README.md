@@ -24,7 +24,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 The API will be available at `http://localhost:8000`.  
-Interactive docs: `http://localhost:8000/docs`
+Interactive docs: `http://localhost:8000/docs` (`/` redirects there)
+
+> **Status:** paused. The Flutter app (`../mobile_flutter`) runs on hardcoded river data and
+> does not call this backend yet.
 
 ---
 
@@ -102,8 +105,8 @@ risk_score = min(1.0, mean(last_6_water) / 5.0 + mean(last_6_rain) / 200.0)
 ### Notifications (`/notifications`)
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/notifications/trigger` | Scan all users in Danger areas and push alerts |
-| POST | `/notifications/send` | Send a push notification to a specific user |
+| POST | `/notifications/trigger` | Find all users inside Danger alert areas and log them (push pending) |
+| POST | `/notifications/send` | Send a push notification to one user (returns 501 until push is configured) |
 
 **POST /notifications/send body:**
 ```json
@@ -115,7 +118,10 @@ risk_score = min(1.0, mean(last_6_water) / 5.0 + mean(last_6_rain) / 200.0)
 }
 ```
 
-Push notifications are delivered via the **Expo Push API** (`https://exp.host/--/api/v2/push/send`).
+> **Push delivery is not configured yet.** The Flutter app currently raises alerts on the phone.
+> The planned design is **Firebase Cloud Messaging (FCM) topics**, one topic per alert zone,
+> so the server sends one message per zone instead of looping over users.
+> `/notifications/trigger` already finds affected users and logs them with status `not_configured`.
 
 ---
 

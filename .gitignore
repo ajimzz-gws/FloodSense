@@ -8,9 +8,6 @@ Thumbs.db
 # --- Demo video project and media (kept local; video is linked from README) ---
 demo-video/
 
-# --- Stray folder created by a tool that mis-expanded an env var ---
-**/%ProgramData%/
-
 # --- Python backend ---
 __pycache__/
 *.pyc
@@ -18,12 +15,6 @@ __pycache__/
 venv/
 .env
 backend/*.db
-
-# --- Old Expo app ---
-mobile/node_modules/
-mobile/.expo/
-mobile/dist/
-mobile/web-build/
 
 # --- Flutter app ---
 **/.dart_tool/

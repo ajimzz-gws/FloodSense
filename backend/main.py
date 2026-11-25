@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
-import os
 import uvicorn
 from contextlib import asynccontextmanager
 
@@ -41,17 +40,9 @@ def health_check():
     return {"status": "ok", "service": "FloodSense API"}
 
 
-@app.get("/ui", tags=["ui"])
-def view_ui():
-    ui_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "preview_ui.html"))
-    if os.path.exists(ui_path):
-        return FileResponse(ui_path, media_type="text/html")
-    return {"error": "Preview UI file not found"}
-
-
-@app.get("/", tags=["ui"])
-def root_ui():
-    return view_ui()
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 
 
 if __name__ == "__main__":

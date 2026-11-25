@@ -1,7 +1,7 @@
 # FloodSense 🌊
 
-> **A real-time flood risk monitoring system for Malaysian river catchments.**  
-> Built with FastAPI (Python) on the backend and React Native (Expo) on the mobile frontend.
+> **A flood early-warning app for river communities in Terengganu, Malaysia.**
+> Built with **Flutter** (Android). The **FastAPI** backend is paused while the prototype runs on its own.
 
 ## 🎬 Demo Video
 
@@ -13,78 +13,60 @@
 ---
 
 ## Table of Contents
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Repository Structure](#repository-structure)
-4. [Backend Setup](#backend-setup)
-5. [Frontend Setup](#frontend-setup)
-6. [API Endpoint Reference](#api-endpoint-reference)
-7. [Configuration & Environment Variables](#configuration--environment-variables)
-8. [Pointing the App at a Real Device](#pointing-the-app-at-a-real-device)
-9. [Next Steps — Integrating a Real LSTM Model](#next-steps--integrating-a-real-lstm-model)
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Project Status](#project-status)
+4. [Repository Structure](#repository-structure)
+5. [Getting Started](#getting-started)
+6. [Demo Walkthrough](#demo-walkthrough)
+7. [Data Sources](#data-sources)
+8. [How Alerts Work](#how-alerts-work)
+9. [Accessibility](#accessibility)
+10. [Testing](#testing)
+11. [Backend (paused)](#backend-paused)
+12. [Roadmap](#roadmap)
 
 ---
 
-## Project Overview
+## Overview
 
-FloodSense aggregates water-level and rainfall sensor data from five major Malaysian river stations, runs a risk-scoring model, and delivers colour-coded risk alerts to a mobile app in real time.
+FloodSense watches river water levels and warns people **in the affected area** when a river
+rises toward flood levels. It uses the same four-stage scale as JPS / InfoBanjir:
 
-**Key features:**
-- **Live station readings** — water level (m), rainfall (mm³), risk label (Safe / Warning / Danger)
-- **Flood risk prediction** — placeholder LSTM formula (ready to swap for a real model)
-- **Push notifications** — Expo Push API; triggered when a user's device enters a Danger zone
-- **User profiles** — station preferences, alert areas, background location tracking
-- **Accessible UI** — soft-blue palette, large fonts (≥ 16 sp body), high-contrast badges
+| Stage | Malay | Colour | Meaning for the user |
+|---|---|---|---|
+| Normal | Normal | 🔵 Blue | No action needed |
+| Alert | Waspada | 🟡 Yellow | Water is rising: stay alert |
+| Warning | Amaran | 🟠 Orange | Get ready to leave |
+| Danger | Bahaya | 🔴 Red | Leave now, go to the nearest relief centre (PPS) |
 
 ---
 
-## Architecture
+## Features
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Mobile App (Expo)                        │
-│                                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────────┐  │
-│  │HomeScreen│  │MapScreen │  │      ProfileScreen           │  │
-│  └────┬─────┘  └────┬─────┘  └──────────────┬───────────────┘  │
-│       │             │                        │                  │
-│  ┌────▼─────────────▼────────────────────────▼───────────────┐  │
-│  │          React Navigation (Bottom Tabs)                   │  │
-│  └───────────────────────┬───────────────────────────────────┘  │
-│                          │                                      │
-│  ┌───────────────────────▼───────────────────────────────────┐  │
-│  │  Services / Hooks                                         │  │
-│  │  apiService (axios) │ locationService │ notificationSvc   │  │
-│  │  useFloodData hook  │ useUserProfile hook                 │  │
-│  └───────────────────────┬───────────────────────────────────┘  │
-└──────────────────────────┼──────────────────────────────────────┘
-                           │  HTTP/REST  (JSON)
-                           │
-┌──────────────────────────▼──────────────────────────────────────┐
-│                   FastAPI Backend (port 8000)                   │
-│                                                                 │
-│  GET /health                                                    │
-│                                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌─────────────┐  │
-│  │  /users  │  │/stations │  │/predictions│  │/notifications│  │
-│  └────┬─────┘  └────┬─────┘  └─────┬──────┘  └──────┬──────┘  │
-│       │             │               │                 │         │
-│  ┌────▼─────────────▼───────────────▼─────────────────▼──────┐  │
-│  │          Pydantic Models  (models.py)                      │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  In-memory store (dict)          Expo Push API (httpx)         │
-└─────────────────────────────────────────────────────────────────┘
+| Screen | What it does |
+|---|---|
+| **Home** | Your station's status in a large colour card, a **MET Malaysia weather forecast**, what to do now, a level gauge with thresholds, and whether you are inside the station's alert zone |
+| **Stations** | All stations with their current level; tap one to make it "my station" |
+| **Map** | OpenStreetMap with colour-coded station pins, 5 km alert zones and your location |
+| **Settings** | English / Bahasa Melayu, three text sizes, location tracking, "always alert me about my station" |
+| **Demo mode** | Set any water level, play a rising-flood scenario, or pretend to be at a station, to show the alerts |
+| **Alerts** | Full-screen alert in the stage colour, plus a phone notification with vibration |
 
-Legend:
-  Mobile ──HTTP──▶ Backend ──HTTP──▶ Expo Push Servers ──▶ Device
-```
+---
 
-**Data flow:**
-1. App launches → `useFloodData` polls `/stations/` every 60 s.
-2. User selects a station → app fetches `/stations/{id}/history`.
-3. Background location task fires every 30 s → posts to `/users/{id}/location`.
-4. Backend `/notifications/trigger` scans all users whose location falls inside a Danger `AlertArea` (haversine check) and pushes via Expo.
+## Project Status
+
+This is a **prototype** for a university project.
+
+| Part | Status |
+|---|---|
+| River levels | **Hardcoded** from a real InfoBanjir reading (see [Data Sources](#data-sources)); changed live through Demo mode |
+| Weather forecast | **Live** from MET Malaysia, with an offline fallback |
+| Alerts | Decided **on the phone** (local notifications) |
+| Location tracking | Continuous, as an Android foreground service |
+| Backend | Paused; the app does not call it yet |
+| Platforms | Android (tested on the Android emulator) |
 
 ---
 
@@ -92,410 +74,156 @@ Legend:
 
 ```
 FloodSense/
-├── README.md                        ← this file
-│
-├── backend/                         ← FastAPI Python backend
-│   ├── main.py                      # App entrypoint + CORS + router registration
-│   ├── models.py                    # Pydantic v2 data models
-│   ├── requirements.txt             # Python dependencies
-│   ├── README.md                    # Backend-specific docs
-│   └── routers/
-│       ├── __init__.py
-│       ├── users.py                 # User CRUD + location update
-│       ├── stations.py              # Station readings & 24-h history
-│       ├── predictions.py           # Flood risk scoring (placeholder LSTM)
-│       └── notifications.py         # Expo push notification dispatch
-│
-└── mobile/                          ← React Native / Expo frontend
-    ├── App.tsx                      # Root component + navigation
-    ├── app.json                     # Expo config
-    ├── eas.json                     # EAS Build profiles
-    ├── package.json                 # npm dependencies
-    ├── babel.config.js
-    ├── tsconfig.json
-    ├── assets/                      # Icons & splash (replace placeholders)
-    └── src/
-        ├── constants/
-        │   ├── api.ts               # API_BASE_URL + endpoint helpers
-        │   └── theme.ts             # Colors, fonts, spacing
-        ├── types/
-        │   └── index.ts             # Shared TypeScript types
-        ├── services/
-        │   ├── apiService.ts        # Axios client
-        │   ├── locationService.ts   # Expo Location + background task
-        │   └── notificationService.ts
-        ├── hooks/
-        │   ├── useFloodData.ts      # Station data + 60-s polling
-        │   └── useUserProfile.ts    # AsyncStorage-backed profile
-        ├── screens/
-        │   ├── HomeScreen.tsx
-        │   ├── MapScreen.tsx
-        │   └── ProfileScreen.tsx
-        └── components/
-            ├── RiskBadge.tsx
-            └── StationCard.tsx
+├── README.md                    ← this file
+├── mobile_flutter/              ← Flutter app (the current app)
+│   ├── lib/
+│   │   ├── main.dart            # App entry, theme, bottom navigation, alert pop-up
+│   │   ├── data/                # Hardcoded stations and thresholds
+│   │   ├── models/              # Station, flood levels, weather forecast
+│   │   ├── services/            # Alert rules, location, notifications, MET weather
+│   │   ├── state/               # App state (Provider)
+│   │   ├── screens/             # Home, Stations, Map, Settings, Demo, Alert
+│   │   ├── widgets/             # Level gauge, threshold table, weather card
+│   │   ├── l10n/                # English and Bahasa Melayu text
+│   │   └── theme/               # Colours, text sizes, level styles
+│   ├── test/                    # Unit tests
+│   ├── assets/icon/             # App icon source (FloodSense logo)
+│   └── README.md                # App-specific notes
+└── backend/                     ← FastAPI backend (paused)
 ```
 
 ---
 
-## Backend Setup
+## Getting Started
 
 ### Prerequisites
-- Python **3.11+**
-- `pip`
+- **Flutter 3.41+** (Dart 3.11+): check with `flutter doctor`
+- **Android Studio** with an Android emulator, or an Android phone with USB debugging
 
-### 1 — Create and activate a virtual environment
+### Run the app
 
 ```bash
-# Windows (PowerShell)
-cd c:\Dev\University\FloodSense\backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# macOS / Linux
-cd /path/to/FloodSense/backend
-python3 -m venv .venv
-source .venv/bin/activate
+cd mobile_flutter
+flutter pub get
+flutter emulators --launch Medium_Phone   # or plug in a phone
+flutter run --release
 ```
 
-### 2 — Install dependencies
+> **Tip:** use `--release` on low-memory emulators (2 GB). Debug builds use about twice the RAM,
+> and Android may close the app.
+
+### Build an APK to share
 
 ```bash
+cd mobile_flutter
+flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk
+```
+
+On first launch the app asks for **location** and **notification** permission. Both are needed
+for area alerts.
+
+---
+
+## Demo Walkthrough
+
+1. **Home** shows *Sg. Terengganu di Drawbridge (F1)* at **Normal, −0.30 m**, with today's MET forecast.
+2. Tap **Demo mode** (top right).
+3. Tap **Alert**, **Warning** or **Danger**, or press **Play rising flood** to raise the water step by step.
+4. Each time the river moves *up* a stage, a **full-screen alert** and a **notification** appear.
+5. Not near the station? Turn on **Pretend I am at this station**. On the emulator you can also
+   set the GPS near the station: `adb emu geo fix 103.1500 5.3300`.
+6. **Reset all to real data** puts every station back to its real reading.
+
+---
+
+## Data Sources
+
+### River levels: InfoBanjir (JPS Malaysia)
+Reading taken from [publicinfobanjir.water.gov.my](https://publicinfobanjir.water.gov.my) on **24/11/2026 14:00**:
+
+| Station ID | Station | District | Current | Normal | Alert | Warning | Danger |
+|---|---|---|---|---|---|---|---|
+| 0670341WL | Sg. Terengganu di Drawbridge (F1) | Kuala Terengganu | −0.30 m | 0.30 m | 1.40 m | 1.60 m | 1.80 m |
+
+Three more stations (Besut, Dungun, Kemaman) are **sample data** with made-up readings, so the map and
+list have something to compare. The app labels them "Sample data". All station data lives in
+`mobile_flutter/lib/data/stations_data.dart`.
+
+### Weather: MET Malaysia
+7-day general forecast from MET Malaysia, published on the government open data API
+([`api.data.gov.my/weather/forecast`](https://developer.data.gov.my/realtime-api/weather)); it needs no API key.
+Each station uses its district forecast (e.g. `Ds048` = Kuala Terengganu). MET publishes the text
+in Malay; the app translates it for English users and keeps the last forecast for offline use.
+
+---
+
+## How Alerts Work
+
+**Who is alerted:** everyone **within 5 km** of a station (its alert zone), plus anyone who picked it
+as "my station" (optional setting, e.g. for a family member's area).
+
+**When:** once each time the river moves **up** a stage (Normal → Alert → Warning → Danger).
+There are no repeats while the level stays the same. When the water falls, the app forgets the higher
+stage, so a second rise alerts again. Someone who walks into a zone that is already at Warning is
+alerted straight away.
+
+These rules live in `mobile_flutter/lib/services/alert_engine.dart` and are covered by unit tests.
+
+**Planned server design:** **Firebase Cloud Messaging topics**, one per alert zone. Phones subscribe
+to a zone's topic when they enter it and unsubscribe when they leave. When a station crosses a
+threshold, the server sends **one message to the topic** and every phone in the area gets the same
+alert. The server never needs a list of users or their locations.
+
+---
+
+## Accessibility
+
+Designed to be usable by all ages:
+- Each stage is shown by **colour, icon and word**, so it does not rely on colour alone
+- Text colours meet **WCAG AA** contrast
+- Large base font sizes, plus **Normal / Large / Extra large** text settings on top of the phone's own setting
+- Touch targets of at least **56 dp**, and bottom navigation labels that are always visible
+- **English and Bahasa Melayu**, using the official JPS stage names (Waspada, Amaran, Bahaya)
+- Plain-language "what you should do" advice for every stage
+- Screen-reader labels on the status card, gauge and map pins
+
+---
+
+## Testing
+
+```bash
+cd mobile_flutter
+flutter test      # thresholds, alert rules, MET forecast translation
+flutter analyze   # static analysis
+```
+
+---
+
+## Backend (paused)
+
+`backend/` is a **FastAPI** service with station, user, prediction and notification endpoints, using
+SQLite for storage. The Flutter prototype does not call it yet. Push delivery is not configured: the
+Danger-zone check works, and Firebase (FCM) is the planned provider. See
+[`backend/README.md`](backend/README.md) for setup and endpoints.
+
+```bash
+cd backend
 pip install -r requirements.txt
-```
-
-**requirements.txt** pins:
-
-| Package | Version |
-|---------|---------|
-| fastapi | ≥ 0.110.0 |
-| uvicorn[standard] | ≥ 0.29.0 |
-| pydantic | ≥ 2.0.0 |
-| httpx | ≥ 0.27.0 |
-| python-multipart | ≥ 0.0.9 |
-| numpy | ≥ 1.26.0 |
-
-### 3 — Run the development server
-
-```bash
-# Option A — via uvicorn directly (recommended, with live reload)
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
-# Option B — via python
-python main.py
-```
-
-- **Local browser:** `http://localhost:8000`
-- **Interactive Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
-
-> **Tip:** Use `--host 0.0.0.0` so that physical Android devices on the same Wi-Fi network can reach the server.
-
----
-
-## Frontend Setup
-
-### Prerequisites
-- **Node.js** 18+ and **npm** 9+
-- **Expo CLI** (`npm install -g expo-cli`) or use `npx expo`
-- **EAS CLI** for APK builds (`npm install -g eas-cli`)
-- **Expo Go** app on your phone (for Expo Go workflow) **or** Android Studio / Xcode for native builds
-
-### 1 — Install dependencies
-
-```bash
-cd c:\Dev\University\FloodSense\mobile
-npm install
-```
-
-### 2 — Start the Expo development server
-
-```bash
-npx expo start
-```
-
-Scan the QR code with **Expo Go** (Android/iOS) to launch the app instantly.
-
-| Key | Action |
-|-----|--------|
-| `a` | Open on Android emulator |
-| `i` | Open on iOS simulator |
-| `w` | Open in web browser |
-
-### 3 — Build an Android APK with EAS
-
-```bash
-# Log in to your Expo account first
-eas login
-
-# Build a shareable APK (preview profile)
-eas build --platform android --profile preview
-```
-
-EAS Build profiles defined in `eas.json`:
-
-| Profile | Type | Use |
-|---------|------|-----|
-| `development` | development client | Local development with custom native code |
-| `preview` | APK (internal) | Shareable test APK without app-store submission |
-| `production` | AAB | Google Play submission |
-
-The finished APK download link appears in the EAS dashboard and in the terminal output.
-
----
-
-## API Endpoint Reference
-
-### Health
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Returns `{"status":"ok"}` |
-
-### Users
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/users/` | Create a new user profile |
-| GET | `/users/{user_id}` | Get user profile by ID |
-| PUT | `/users/{user_id}` | Update user profile |
-| POST | `/users/{user_id}/location` | Update last-known lat/lng |
-
-**UserProfile schema:**
-```json
-{
-  "id": "string",
-  "name": "string",
-  "email": "string",
-  "home_address": "string",
-  "selected_station_id": "string",
-  "alert_areas": ["string"],
-  "push_token": "string | null",
-  "last_known_lat": "float | null",
-  "last_known_lng": "float | null"
-}
-```
-
-### Stations
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/stations/` | List all 5 mock stations |
-| GET | `/stations/{station_id}` | Single station reading |
-| GET | `/stations/{station_id}/history` | 24-hour water-level & rainfall arrays |
-
-**Station IDs:** `SGK001` (Sg. Klang), `SGB001` (Sg. Gombak), `SGBatu001` (Sg. Batu), `SGL001` (Sg. Langat), `SGS001` (Sg. Selangor)
-
-**Risk label thresholds:**
-
-| Water Level | Risk Label |
-|-------------|-----------|
-| < 2.5 m | ✅ Safe |
-| 2.5 – 4.0 m | ⚠️ Warning |
-| > 4.0 m | 🔴 Danger |
-
-### Predictions
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/predictions/predict` | Run risk scoring on provided history |
-| GET | `/predictions/latest/{station_id}` | Mock latest prediction for a station |
-
-**POST /predictions/predict body:**
-```json
-{
-  "station_id": "SGK001",
-  "water_level_history": [1.2, 1.5, 2.0, 2.3, 2.8, 3.1],
-  "rainfall_history": [5.0, 10.0, 15.0, 20.0, 25.0, 30.0]
-}
-```
-
-**Risk score formula (placeholder):**
-```
-risk_score = min(1.0, mean(last_6_water) / 5.0 + mean(last_6_rain) / 200.0)
-```
-
-| risk_score | Label |
-|-----------|-------|
-| < 0.4 | Safe |
-| 0.4 – 0.7 | Warning |
-| ≥ 0.7 | Danger |
-
-### Notifications
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/notifications/trigger` | Scan users in Danger zones; push alerts via Expo |
-| POST | `/notifications/send` | Push to a specific user by user_id |
-
-**POST /notifications/send body:**
-```json
-{
-  "user_id": "u001",
-  "title": "Flood Warning",
-  "body": "Water levels rising near your area.",
-  "data": {"type": "flood_warning"}
-}
-```
-
-Notifications are sent to `https://exp.host/--/api/v2/push/send` via **httpx**.
-
----
-
-## Configuration & Environment Variables
-
-The backend currently uses **no `.env` file** — all configuration is in-code for prototype purposes. When moving to production, extract these into environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `0.0.0.0` | Uvicorn bind address |
-| `PORT` | `8000` | Uvicorn port |
-| `EXPO_PUSH_URL` | `https://exp.host/--/api/v2/push/send` | Expo push endpoint |
-| `CORS_ORIGINS` | `["*"]` | Allowed CORS origins (lock down for production) |
-
-Recommended approach for production:
-
-```bash
-# Install python-dotenv
-pip install python-dotenv
-
-# Create backend/.env
-HOST=0.0.0.0
-PORT=8000
-CORS_ORIGINS=https://yourfrontenddomain.com
-```
-
-Then load with `from dotenv import load_dotenv; load_dotenv()` in `main.py`.
-
----
-
-## Pointing the App at a Real Device
-
-The default `API_BASE_URL` in [`mobile/src/constants/api.ts`](mobile/src/constants/api.ts) is:
-
-```typescript
-export const API_BASE_URL = 'http://10.0.2.2:8000';
-// 10.0.2.2 is the Android Emulator loopback alias for the host machine.
-```
-
-### Physical Android/iOS device over Wi-Fi
-
-1. Find your development machine's local IP:
-   ```powershell
-   # Windows PowerShell
-   Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object IPAddress
-   ```
-2. Edit `mobile/src/constants/api.ts`:
-   ```typescript
-   export const API_BASE_URL = 'http://192.168.1.XXX:8000'; // ← your machine's IP
-   ```
-3. Make sure the backend is running with `--host 0.0.0.0`:
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-4. Ensure your firewall allows inbound connections on port **8000**.
-5. Both device and laptop must be on the **same Wi-Fi network**.
-
-### Tunnel (no same-network requirement)
-
-```bash
-npx expo start --tunnel
-```
-
-Expo uses ngrok to expose the dev server publicly — the QR code URL will update automatically.
-
----
-
-## Next Steps — Integrating a Real LSTM Model
-
-The placeholder scoring formula in `backend/routers/predictions.py` is designed to be a **drop-in replacement target**.
-
-### Step 1 — Train your LSTM
-
-Suggested input features per time-step:
-- `water_level_m` (normalised)
-- `rainfall_mm3` (normalised)
-- `hour_of_day` (cyclic sin/cos encoding)
-- `day_of_week` (cyclic sin/cos encoding)
-
-Suggested architecture:
-```
-Input → LSTM(64 units) → Dropout(0.2) → LSTM(32 units) → Dense(1, sigmoid)
-```
-Output: flood probability in `[0.0, 1.0]`.
-
-Recommended libraries: **TensorFlow / Keras** or **PyTorch**.
-
-### Step 2 — Export the model
-
-```python
-# Keras
-model.save('floodsense_lstm.keras')
-
-# PyTorch
-torch.save(model.state_dict(), 'floodsense_lstm.pt')
-```
-
-Place the model file at `backend/model/floodsense_lstm.keras`.
-
-### Step 3 — Add model-loading dependencies
-
-```
-# requirements.txt additions
-tensorflow>=2.16.0
-# or
-torch>=2.3.0
-```
-
-### Step 4 — Replace the placeholder in `predictions.py`
-
-```python
-# At module load time (once)
-import numpy as np
-from tensorflow import keras
-
-_model = keras.models.load_model('model/floodsense_lstm.keras')
-_scaler_water = ...  # load your fitted MinMaxScaler
-_scaler_rain  = ...
-
-def _lstm_predict(water_history: list[float], rain_history: list[float]) -> float:
-    seq = np.column_stack([
-        _scaler_water.transform([[w] for w in water_history[-24:]]),
-        _scaler_rain.transform([[r] for r in rain_history[-24:]]),
-    ])
-    X = seq[np.newaxis, ...]          # shape (1, 24, 2)
-    return float(_model.predict(X, verbose=0)[0][0])
-```
-
-Replace the formula call in the `POST /predictions/predict` handler with `_lstm_predict(...)`.
-
-### Step 5 — Automate periodic prediction
-
-Add an `APScheduler` background job in `main.py` to call `/predictions/predict` for every station every 15 minutes and cache the result:
-
-```bash
-pip install apscheduler
-```
-
-```python
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-scheduler = AsyncIOScheduler()
-
-@app.on_event("startup")
-async def start_scheduler():
-    scheduler.add_job(refresh_all_predictions, "interval", minutes=15)
-    scheduler.start()
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload   # docs at http://localhost:8000/docs
 ```
 
 ---
 
-## Contributing
+## Roadmap
 
-1. Fork the repo and create a feature branch (`git checkout -b feature/my-feature`).
-2. Backend changes: add tests in `backend/tests/` (pytest).
-3. Frontend changes: run `npx expo start` and test on both Android and iOS.
-4. Open a pull request with a clear description of what changed and why.
+- [ ] **Live river levels** from InfoBanjir instead of hardcoded readings
+- [ ] **Firebase Cloud Messaging** topic alerts per zone (server-side), as described above
+- [ ] Connect the app to the **backend** (user profiles, alert zones, history)
+- [ ] **Flood risk prediction** (LSTM on water level + rainfall history, replacing the placeholder formula in `backend/routers/predictions.py`)
+- [ ] Map tiles from a production tile provider (OpenStreetMap's public tiles are fine for a demo only)
+- [ ] Nearest relief centre (PPS) directions in Danger alerts
+- [ ] iOS build
 
 ---
 
